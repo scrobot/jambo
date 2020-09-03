@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: stickers
+  cloud:
+    consul:
+      config:
+        enabled: true
+        prefix: jambo/messaging
+        format: yaml
+      host: ${CONSUL_URL:http://localhost}
+      port: ${CONSUL_PORT:8500}

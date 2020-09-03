@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: spring-admin-panel
+  cloud:
+    consul:
+      config:
+        enabled: true
+        prefix: jambo/backoffice
+        format: yaml
+      host: ${CONSUL_URL:http://localhost}
+      port: ${CONSUL_PORT:8500}

@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: users
+  cloud:
+    consul:
+      config:
+        enabled: true
+        prefix: jambo/sso
+        format: yaml
+      host: ${CONSUL_URL:http://localhost}
+      port: ${CONSUL_PORT:8500}
