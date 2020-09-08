@@ -2,6 +2,21 @@ version: '3.1'
 
 services:
 
+#  auth-jambo:
+#    image: jambo-auth:latest
+#    ports:
+#      - 8901:8080
+#    networks:
+#      - transit
+
+  users-jambo:
+    image: jambo-users:latest
+    ports:
+      - 8900:8080
+    networks:
+      transit:
+        ipv4_address: 10.20.30.3
+
   users:
     image: postgres:11-alpine
     volumes:
@@ -13,26 +28,80 @@ services:
     networks:
       - db
 
-  adminer:
-    image: adminer
-    restart: always
-    networks:
-      - db
+  cassandra-main:
+    image: cassandra
     ports:
-      - 8000:8080
-
-  mongo:
-    image: mongo
-    restart: always
+      - "9042:9042"   # Native transport
+      - "7199:7199"   # JMX
+      - "9160:9160"   # Thrift clients
     environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: example
-    ports:
-      - 27017:27017
+      - HEAP_NEWSIZE=12M
+      - MAX_HEAP_SIZE=64M
     networks:
-      - mongo_cluster
+      transit:
+        ipv4_address: 10.20.30.2
     volumes:
-      - mongodb:/data/db
+      - cassandra:/data
+
+  cassandra-node:
+    image: cassandra-node
+    build:
+      context: .
+      dockerfile: Dockerfile_nc
+    command: >
+      /bin/bash -c "
+        while ! nc -z cassandra-main 9042;
+        do
+          echo 'Waiting for seed node ...';
+          sleep 2;
+        done;
+        docker-entrypoint.sh cassandra -f;
+      "
+    environment:
+      - CASSANDRA_SEEDS=cassandra-main
+      - HEAP_NEWSIZE=12M #https://github.com/docker-library/cassandra/issues/94
+      - MAX_HEAP_SIZE=64M
+    depends_on:
+      - cassandra-main
+    networks:
+      - cassandra_cluster
+      - transit
+    volumes:
+      - cassandra:/data
+
+  cassandra-web:
+    image: metavige/cassandra-web
+    ports:
+      - 3000:3000
+    networks:
+      - cassandra_cluster
+      - transit
+    environment:
+      - CASSANDRA_HOST=10.20.30.2
+      - CASSANDRA_USER=cassandra
+      - CASSANDRA_PASSWORD=cassandra
+
+#  adminer:
+#    image: adminer
+#    restart: always
+#    networks:
+#      - db
+#    ports:
+#      - 8000:8080
+#
+#  mongo:
+#    image: mongo
+#    restart: always
+#    environment:
+#      MONGO_INITDB_ROOT_USERNAME: root
+#      MONGO_INITDB_ROOT_PASSWORD: example
+#    ports:
+#      - 27017:27017
+#    networks:
+#      - mongo_cluster
+#      - transit
+#    volumes:
+#      - mongodb:/data/db
 
 #  minio:
 #    image: minio/minio:latest
@@ -51,16 +120,16 @@ services:
 #      timeout: 20s
 #      retries: 3
 
-  mongo-express:
-    image: mongo-express
-    restart: always
-    ports:
-      - 9002:8081
-    environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: root
-      ME_CONFIG_MONGODB_ADMINPASSWORD: example
-    networks:
-      - mongo_cluster
+#  mongo-express:
+#    image: mongo-express
+#    restart: always
+#    ports:
+#      - 9002:8081
+#    environment:
+#      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+#      ME_CONFIG_MONGODB_ADMINPASSWORD: example
+#    networks:
+#      - mongo_cluster
 
   consul:
     image: consul
@@ -68,6 +137,7 @@ services:
       - consul_data:/bitnami/consul
     networks:
       - cluster
+      - transit
     ports:
       - '8300:8300'
       - '8301:8301'
@@ -76,14 +146,14 @@ services:
       - '8600:8600'
       - '8600:8600/udp'
 
-  lences:
-    image: lensesio/fast-data-dev
-    ports:
-      - 2181:2181
-      - 3030:3030
-      - 8081-8083:8081-8083
-      - 9581-9585:9581-9585
-      - 9092:9092
+#  lences:
+#    image: lensesio/fast-data-dev
+#    ports:
+#      - 2181:2181
+#      - 3030:3030
+#      - 8081-8083:8081-8083
+#      - 9581-9585:9581-9585
+#      - 9092:9092
 
 
 volumes:
@@ -109,3 +179,9 @@ networks:
     driver: bridge
   cassandra_cluster:
     driver: bridge
+  transit:
+    ipam:
+      driver: default
+      config:
+        - subnet: "10.20.30.0/24"
+

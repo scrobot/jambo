@@ -1,6 +1,6 @@
-server:
-  port: 8100
-
 spring:
-  datasource:
-    url:
+  data:
+    cassandra:
+      keyspace-name: practice
+      port: 9042
+      contact-points: cassandra-main:9042

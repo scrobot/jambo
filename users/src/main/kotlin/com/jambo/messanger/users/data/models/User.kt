@@ -1,15 +1,14 @@
 package com.jambo.messanger.users.data.models
 
-import org.springframework.data.annotation.Id
-import org.springframework.data.relational.core.mapping.Table
+import org.springframework.data.cassandra.core.mapping.PrimaryKey
 import java.io.Serializable
 import java.time.OffsetDateTime
 import java.util.*
 import javax.validation.constraints.Email
 
-@Table("users")
+
 data class User(
-    @Id
+    @PrimaryKey
     val id: UUID,
     val nickname: String,
     val password: String,

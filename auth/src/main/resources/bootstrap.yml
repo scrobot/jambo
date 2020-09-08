@@ -7,5 +7,5 @@ spring:
         enabled: false
         prefix: jambo/sso
         format: yaml
-      host: ${CONSUL_URL:http://localhost}
+      host: ${CONSUL_URL:http://consul}
       port: ${CONSUL_PORT:8500}
