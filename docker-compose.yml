@@ -1,4 +1,4 @@
-version: '3.1'
+version: '2.1'
 
 services:
 
@@ -37,9 +37,19 @@ services:
     environment:
       - HEAP_NEWSIZE=12M
       - MAX_HEAP_SIZE=64M
+      - CASSANDRA_RPC_ADDRESS=10.20.30.10
+      - CASSANDRA_LISTEN_ADDRESS=10.20.30.10
+    healthcheck:
+        test: cqlsh 10.20.30.10 --execute 'describe cluster;'
+        interval: 15s
+        timeout: 10s
+        retries: 10
     networks:
       transit:
-        ipv4_address: 10.20.30.2
+        ipv4_address: 10.20.30.10
+        aliases:
+          - cassandra-main
+      cassandra_cluster:
     volumes:
       - cassandra:/data
 
@@ -62,7 +72,8 @@ services:
       - HEAP_NEWSIZE=12M #https://github.com/docker-library/cassandra/issues/94
       - MAX_HEAP_SIZE=64M
     depends_on:
-      - cassandra-main
+      cassandra-main:
+        condition: service_healthy
     networks:
       - cassandra_cluster
       - transit
@@ -70,17 +81,21 @@ services:
       - cassandra:/data
 
   cassandra-web:
-    image: metavige/cassandra-web
+    image: markusgulden/cassandra-web
+    depends_on:
+     cassandra-main:
+        condition: service_healthy
     ports:
       - 3000:3000
     networks:
       - cassandra_cluster
       - transit
     environment:
-      - CASSANDRA_HOST=10.20.30.2
+      - CASSANDRA_HOST_IPS=10.20.30.10
       - CASSANDRA_USER=cassandra
       - CASSANDRA_PASSWORD=cassandra
-
+      - CASSANDRA_PORT=9042
+      
 #  adminer:
 #    image: adminer
 #    restart: always
