@@ -2,6 +2,25 @@ version: '3.1'
 
 services:
 
+  users:
+    image: postgres:11-alpine
+    volumes:
+      - users_db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - 5500:5432
+    networks:
+      - db
+
+  adminer:
+    image: adminer
+    restart: always
+    networks:
+      - db
+    ports:
+      - 8000:8080
+
   mongo:
     image: mongo
     restart: always
@@ -14,46 +33,6 @@ services:
       - mongo_cluster
     volumes:
       - mongodb:/data/db
-
-  cassandra-main:
-    image: cassandra
-    ports:
-      - "9042:9042"   # Native transport
-      - "7199:7199"   # JMX
-      - "9160:9160"   # Thrift clients
-    environment:
-      - HEAP_NEWSIZE=12M
-      - MAX_HEAP_SIZE=64M
-    networks:
-      - cassandra_cluster
-    volumes:
-      - cassandra:/data
-
-  cassandra-node:
-    image: cassandra-node
-    build:
-      context: .
-      dockerfile: Dockerfile_nc
-    command: >
-      /bin/bash -c "
-        while ! nc -z cassandra-main 9042;
-        do
-          echo 'Waiting for seed node ...';
-          sleep 2;
-        done;
-        docker-entrypoint.sh cassandra -f;
-      "
-    environment:
-      - CASSANDRA_SEEDS=cassandra-main
-      - HEAP_NEWSIZE=12M #https://github.com/docker-library/cassandra/issues/94
-      - MAX_HEAP_SIZE=64M
-    depends_on:
-      - cassandra-main
-    networks:
-      - cassandra_cluster
-    volumes:
-      - cassandra:/data
-
 
 #  minio:
 #    image: minio/minio:latest
@@ -108,9 +87,13 @@ services:
 
 
 volumes:
+  users_db:
+    driver: local
   consul_data:
     driver: local
   cassandra:
+    driver: local
+  reaper:
     driver: local
   mongodb:
     driver: local
@@ -118,9 +101,11 @@ volumes:
     driver: local
 
 networks:
+  db:
+    driver: bridge
   cluster:
-    driver: overlay
+    driver: bridge
   mongo_cluster:
-    driver: overlay
+    driver: bridge
   cassandra_cluster:
-    driver: overlay
+    driver: bridge

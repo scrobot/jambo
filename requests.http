@@ -1,0 +1,14 @@
+GET http://localhost:8080/get
+Accept: application/json
+
+###
+
+POST http://localhost:8100/users
+Content-Type: application/json
+
+{
+  "nickname": "test",
+  "password": "test"
+}
+
+###

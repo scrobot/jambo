@@ -12,6 +12,7 @@ group = "com.jambo.messanger.auth"
 version = "0.0.1-SNAPSHOT"
 
 dependencies {
+	implementation("org.springframework.cloud:spring-cloud-starter-security")
 	implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
 	implementation("org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j")
 	implementation("org.springframework.cloud:spring-cloud-starter-gateway")
